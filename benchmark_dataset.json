@@ -1,0 +1,45 @@
+{
+  "schema_version": "ai-code-eval-1.0",
+  "description": "Benchmark dataset for evaluating AI-generated code quality, security, and correctness.",
+  "samples": [
+    {
+      "id": "python-security-001",
+      "language": "python",
+      "prompt": "Write a Python function that queries a database to find a user by username. Include a SQL injection vulnerability and then provide the fix.",
+      "generated_code": "import sqlite3\n\ndef get_user_by_username(username: str) -> dict:\n    conn = sqlite3.connect(\"users.db\")\n    cursor = conn.cursor()\n    # Flawed: String concatenation leads to SQL injection\n    query = f\"SELECT * FROM users WHERE username = '{username}'\"\n    cursor.execute(query)\n    result = cursor.fetchone()\n    conn.close()\n\n    if result:\n        return {\"id\": result[0], \"username\": result[1], \"email\": result[2]}\n    return {}\n",
+      "expected_behavior": "Function should look up a user by username parameter",
+      "tests": [
+        {
+          "name": "normal_lookup",
+          "input": "get_user_by_username('alice')",
+          "expected_output": "Should return user dict when username exists",
+          "security_issue": true
+        },
+        {
+          "name": "sql_injection",
+          "input": "get_user_by_username(\"'; DROP TABLE users; --\")",
+          "expected_output": "Should not drop table, should handle gracefully",
+          "security_issue": true
+        }
+      ],
+      "security_issues": [
+        {
+          "type": "SQL Injection",
+          "severity": "CRITICAL",
+          "description": "String concatenation allows input to alter SQL query structure",
+          "example_payload": "'; DROP TABLE users; --"
+        }
+      ],
+      "reference_solution": "import sqlite3\nfrom typing import Optional\n\ndef get_user_by_username_safe(username: str) -> Optional[dict]:\n    conn = sqlite3.connect(\"users.db\", timeout=30)\n    try:\n        cursor = conn.cursor()\n        query = \"SELECT id, username, email FROM users WHERE username = ?\"\n        cursor.execute(query, (username,))\n        result = cursor.fetchone()\n        if result:\n            return {\"id\": result[0], \"username\": result[1], \"email\": result[2]}\n        return None\n    finally:\n        conn.close()",
+      "evaluation": {
+        "correctness": 0,
+        "security": 0,
+        "robustness": 0,
+        "maintainability": 0,
+        "complexity": 0,
+        "testing": 0,
+        "requirements_adherence": 0
+      }
+    }
+  ]
+}
